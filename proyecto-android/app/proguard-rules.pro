@@ -1,0 +1,14 @@
+-dontwarn org.jsoup.**
+-keep class org.jsoup.** {*;}
+-dontwarn com.gemalto.jp2.**
+-dontwarn com.tom_roush.pdfbox.**
+-keep class com.tom_roush.pdfbox.** { *; }
+-keep class com.tom_roush.fontbox.** { *; }
+-dontwarn io.noties.markwon.**
+-dontwarn org.commonmark.**
+-keep class org.commonmark.** { *; }
+-keep class io.noties.markwon.** { *; }
+-keep class com.google.gson.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
+-dontwarn com.google.android.gms.**
