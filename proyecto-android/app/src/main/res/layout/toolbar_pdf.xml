@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <Button
+            android:id="@+id/tpUndo"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↶" />
+
+        <Button
+            android:id="@+id/tpRedo"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↷" />
+
+        <Button
+            android:id="@+id/tpSelect"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Seleccionar" />
+
+        <Button
+            android:id="@+id/tpDraw"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dibujar" />
+
+        <Button
+            android:id="@+id/tpText"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Texto" />
+
+        <Button
+            android:id="@+id/tpSign"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Firma" />
+
+        <Button
+            android:id="@+id/tpStamp"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sello" />
+
+        <Button
+            android:id="@+id/tpErase"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Borrar anot." />
+
+        <Button
+            android:id="@+id/tpColor"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Color" />
+
+        <Button
+            android:id="@+id/tpWidth"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Grosor ▾" />
+
+        <Button
+            android:id="@+id/tpZoomOut"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="−" />
+
+        <Button
+            android:id="@+id/tpZoomIn"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="＋" />
+
+        <Button
+            android:id="@+id/tpNight"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🌙" />
+
+        <Button
+            android:id="@+id/tpFind"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Buscar" />
+
+        <Button
+            android:id="@+id/tpPages"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Páginas ▾" />
+
+        <Button
+            android:id="@+id/tpForm"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Formulario" />
+
+        <Button
+            android:id="@+id/tpTextMenu"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Texto ▾" />
+    </LinearLayout>
+</HorizontalScrollView>
