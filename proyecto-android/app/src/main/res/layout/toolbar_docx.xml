@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <Button
+            android:id="@+id/tbPages"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📄 Páginas"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/tbZoom"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔍 Zoom" />
+
+        <Button
+            android:id="@+id/tbUndo"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↶"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbRedo"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↷"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbStyle"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Estilo ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbFont"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Fuente ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbSize"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tam ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbBold"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="B"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/tbItalic"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="I"
+            android:textStyle="italic" />
+
+        <Button
+            android:id="@+id/tbUnder"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="U"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbStrike"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="S"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbColor"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="A"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbHl"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Resaltar"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbLeft"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Izq"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbCenter"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cen"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbRight"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Der"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbJustify"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Just"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbBullet"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• Lista"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbNumber"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1. Lista"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbOutdent"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⇤"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbIndent"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⇥"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbSpacing"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Interl. ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbImage"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Imagen"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbTable"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tabla ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbFind"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Buscar"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbClear"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sin formato"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/tbDelPara"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🗑 Párrafo"
+            android:textStyle="normal" />
+    </LinearLayout>
+</HorizontalScrollView>
