@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#223B82F6"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <Button
+            android:id="@+id/psCopy"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Copiar" />
+
+        <Button
+            android:id="@+id/psHl"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Resaltar" />
+
+        <Button
+            android:id="@+id/psUl"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Subrayar" />
+
+        <Button
+            android:id="@+id/psStrike"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tachar" />
+
+        <Button
+            android:id="@+id/psReplace"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reemplazar" />
+
+        <Button
+            android:id="@+id/psAll"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Toda la página" />
+
+        <Button
+            android:id="@+id/psClose"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✕" />
+    </LinearLayout>
+</HorizontalScrollView>
