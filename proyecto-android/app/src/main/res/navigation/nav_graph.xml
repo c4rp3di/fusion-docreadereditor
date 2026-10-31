@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:startDestination="@id/documentListFragment">
+
+    <fragment
+        android:id="@+id/documentListFragment"
+        android:name="com.docreader.editor.ui.list.DocumentListFragment">
+        <action
+            android:id="@+id/action_list_to_viewer"
+            app:destination="@id/documentViewerFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/documentViewerFragment"
+        android:name="com.docreader.editor.ui.viewer.DocumentViewerFragment" />
+</navigation>
