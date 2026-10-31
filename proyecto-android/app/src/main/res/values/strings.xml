@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">DocReader</string>
+    <string name="search_hint">Buscar por nombre o contenido</string>
+    <string name="empty_library">Importa un archivo o crea uno nuevo con el botón +</string>
+    <string name="save">Guardar</string>
+    <string name="preview">Vista previa</string>
+    <string name="edit">Editar</string>
+</resources>
