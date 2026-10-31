@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <Button
+            android:id="@+id/txPrint"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🖨 Impresión"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/txZoomOut"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔍−" />
+
+        <Button
+            android:id="@+id/txZoomIn"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔍＋" />
+
+        <Button
+            android:id="@+id/txUndo"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↶"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txRedo"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↷"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txSum"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Σ ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txFx"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="fx ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txBold"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="B"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/txItalic"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="I"
+            android:textStyle="italic" />
+
+        <Button
+            android:id="@+id/txUnder"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="U"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txFill"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Relleno"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txColor"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="A"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txSize"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tam ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txLeft"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Izq"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txCenter"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cen"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txRight"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Der"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txFmt"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Formato ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txDecUp"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=".0→.00"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txDecDown"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=".00→.0"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txBorder"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Bordes"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txRange"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Rango"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txCopy"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Copiar"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txCut"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cortar"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txPaste"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pegar"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txClear"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Borrar"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txRows"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Filas/Col ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txSort"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ordenar ▾"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txFilter"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Filtrar ▾" />
+
+        <Button
+            android:id="@+id/txFind"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Buscar"
+            android:textStyle="normal" />
+    </LinearLayout>
+</HorizontalScrollView>
