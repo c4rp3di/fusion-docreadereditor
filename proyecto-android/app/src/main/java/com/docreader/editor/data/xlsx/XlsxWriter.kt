@@ -86,6 +86,7 @@ object XlsxWriter {
         val dim = if (maxR < 0) "A1" else "A1:" + Refs.addr(maxR, maxC)
         head = if (Regex("<dimension\\s[^>]*/>").containsMatchIn(head))
             head.replace(Regex("<dimension\\s[^>]*/>"), "<dimension ref=\"$dim\"/>") else head
+        if (s.freezeDirty) head = applyFreeze(head, s.freezeR, s.freezeC)
         sb.append(head)
         if (s.cols.isNotEmpty()) {
             sb.append("<cols>")
@@ -115,6 +116,28 @@ object XlsxWriter {
             sb.append(s.tailBefore, 0, pos).append(merges).append(s.tailBefore, pos, s.tailBefore.length)
         }
         return sb.toString()
+    }
+
+    /** Escribe (o quita) el panel inmovilizado en la cabecera de la hoja. */
+    private fun applyFreeze(head: String, r: Int, c: Int): String {
+        var h = head.replace(Regex("<pane\\b[^>]*/>"), "").replace(Regex("<selection\\b[^>]*/>"), "")
+        val pane = if (r == 0 && c == 0) "" else {
+            val active = when { r > 0 && c > 0 -> "bottomRight"; r > 0 -> "bottomLeft"; else -> "topRight" }
+            "<pane" + (if (c > 0) " xSplit=\"$c\"" else "") + (if (r > 0) " ySplit=\"$r\"" else "") +
+                " topLeftCell=\"${Refs.addr(r, c)}\" activePane=\"$active\" state=\"frozen\"/>"
+        }
+        val open = Regex("<sheetView\\b[^>]*?(/?)>").find(h)
+        if (open != null) {
+            h = if (open.groupValues[1] == "/")
+                h.replaceRange(open.range, open.value.removeSuffix("/>") + ">" + pane + "</sheetView>")
+            else h.replaceRange(open.range.last + 1, open.range.last + 1, pane)
+        } else if (pane.isNotEmpty()) {
+            val views = "<sheetViews><sheetView workbookViewId=\"0\">$pane</sheetView></sheetViews>"
+            val at = Regex("<dimension\\b[^>]*/>").find(h)?.range?.last?.plus(1)
+                ?: Regex("<worksheet\\b[^>]*>").find(h)?.range?.last?.plus(1) ?: h.length
+            h = h.replaceRange(at, at, views)
+        }
+        return h
     }
 
     private fun cellXml(doc: XlsxDoc, s: SheetData, r: Int, c: Int, cell: Cell): String {
