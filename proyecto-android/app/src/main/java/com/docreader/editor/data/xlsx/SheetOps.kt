@@ -171,6 +171,68 @@ object SheetOps {
         touch(doc, sh)
     }
 
+    // ------------------------------------------------------------ anchos, alturas, ocultar y rellenar
+    /** Reescribe los atributos de las columnas c1..c2 (una entrada por columna). */
+    private fun updateCols(sh: SheetData, c1: Int, c2: Int, transform: (String?) -> String) {
+        val out = ArrayList<ColDef>()
+        for (cd in sh.cols) {
+            if (cd.max < c1 || cd.min > c2) { out.add(cd); continue }
+            if (cd.min < c1) out.add(ColDef(cd.min, c1 - 1, cd.attrs))
+            if (cd.max > c2) out.add(ColDef(c2 + 1, cd.max, cd.attrs))
+        }
+        for (c in c1..c2) out.add(ColDef(c, c, transform(sh.cols.firstOrNull { c in it.min..it.max }?.attrs)))
+        sh.cols = ArrayList(out.sortedBy { it.min })
+    }
+
+    private fun stripAttrs(a: String?, vararg names: String): String {
+        var r = a ?: ""
+        for (n in names) r = r.replace(Regex("\\s$n=\"[^\"]*\""), "")
+        return r
+    }
+
+    fun setColWidth(doc: XlsxDoc, sh: SheetData, c1: Int, c2: Int, chars: Float) {
+        val w = String.format(java.util.Locale.US, "%.2f", chars)
+        updateCols(sh, c1, c2) { old -> stripAttrs(old, "width", "customWidth", "hidden") + " width=\"$w\" customWidth=\"1\"" }
+        touch(doc, sh)
+    }
+
+    fun setColHidden(doc: XlsxDoc, sh: SheetData, c1: Int, c2: Int, hidden: Boolean) {
+        updateCols(sh, c1, c2) { old ->
+            val base = stripAttrs(old, "hidden")
+            val withW = if (Regex("\\swidth=").containsMatchIn(base)) base else "$base width=\"${sh.defColChars}\""
+            if (hidden) "$withW hidden=\"1\"" else withW
+        }
+        touch(doc, sh)
+    }
+
+    fun showAllCols(doc: XlsxDoc, sh: SheetData) {
+        sh.cols = ArrayList(sh.cols.map { ColDef(it.min, it.max, stripAttrs(it.attrs, "hidden")) })
+        touch(doc, sh)
+    }
+
+    fun setRowHeight(doc: XlsxDoc, sh: SheetData, r1: Int, r2: Int, pt: Float) {
+        val h = String.format(java.util.Locale.US, "%.2f", pt)
+        for (r in r1..r2) sh.rowAttrs[r] = stripAttrs(sh.rowAttrs[r], "ht", "customHeight") + " ht=\"$h\" customHeight=\"1\""
+        touch(doc, sh)
+    }
+
+    fun hideRows(doc: XlsxDoc, sh: SheetData, r1: Int, r2: Int) {
+        for (r in r1..r2) setRowHidden(sh, r, true)
+        touch(doc, sh)
+    }
+
+    private fun putFill(sh: SheetData, r: Int, c: Int, src: Cell?, dr: Int, dc: Int) {
+        if (src == null) sh.cells.remove(key(r, c))
+        else sh.cells[key(r, c)] = if (src.formula != null) withFormula(src, Refs.translate(src.formula, dr, dc)) else src
+    }
+
+    /** Rellenar hacia abajo / hacia la derecha copiando la primera fila / columna del rango. */
+    fun fill(doc: XlsxDoc, sh: SheetData, r1: Int, c1: Int, r2: Int, c2: Int, down: Boolean) {
+        if (down) for (c in c1..c2) { val src = sh.cell(r1, c); for (r in r1 + 1..r2) putFill(sh, r, c, src, r - r1, 0) }
+        else for (r in r1..r2) { val src = sh.cell(r, c1); for (c in c1 + 1..c2) putFill(sh, r, c, src, 0, c - c1) }
+        touch(doc, sh)
+    }
+
     // ------------------------------------------------------------ ordenar
     fun currentRegion(sh: SheetData, r: Int, c: Int): IntArray {
         var r1 = r; var r2 = r; var c1 = c; var c2 = c
