@@ -12,28 +12,6 @@
         android:paddingEnd="4dp">
 
         <Button
-            android:id="@+id/txPrint"
-            style="@style/Widget.DocReader.Tool"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🖨 Impresión"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/txZoomOut"
-            style="@style/Widget.DocReader.Tool"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🔍−" />
-
-        <Button
-            android:id="@+id/txZoomIn"
-            style="@style/Widget.DocReader.Tool"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🔍＋" />
-
-        <Button
             android:id="@+id/txUndo"
             style="@style/Widget.DocReader.Tool"
             android:layout_width="wrap_content"
@@ -50,19 +28,27 @@
             android:textStyle="normal" />
 
         <Button
-            android:id="@+id/txSum"
+            android:id="@+id/txCopy"
             style="@style/Widget.DocReader.Tool"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Σ ▾"
+            android:text="Copiar"
             android:textStyle="normal" />
 
         <Button
-            android:id="@+id/txFx"
+            android:id="@+id/txCut"
             style="@style/Widget.DocReader.Tool"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="fx ▾"
+            android:text="Cortar"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txPaste"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pegar"
             android:textStyle="normal" />
 
         <Button
@@ -170,43 +156,19 @@
             android:textStyle="normal" />
 
         <Button
-            android:id="@+id/txRange"
+            android:id="@+id/txSum"
             style="@style/Widget.DocReader.Tool"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Rango"
+            android:text="Σ ▾"
             android:textStyle="normal" />
 
         <Button
-            android:id="@+id/txCopy"
+            android:id="@+id/txFx"
             style="@style/Widget.DocReader.Tool"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Copiar"
-            android:textStyle="normal" />
-
-        <Button
-            android:id="@+id/txCut"
-            style="@style/Widget.DocReader.Tool"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Cortar"
-            android:textStyle="normal" />
-
-        <Button
-            android:id="@+id/txPaste"
-            style="@style/Widget.DocReader.Tool"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Pegar"
-            android:textStyle="normal" />
-
-        <Button
-            android:id="@+id/txClear"
-            style="@style/Widget.DocReader.Tool"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Borrar"
+            android:text="fx ▾"
             android:textStyle="normal" />
 
         <Button
@@ -216,6 +178,13 @@
             android:layout_height="wrap_content"
             android:text="Filas/Col ▾"
             android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txFreeze"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Inmovilizar ▾" />
 
         <Button
             android:id="@+id/txSort"
@@ -239,5 +208,43 @@
             android:layout_height="wrap_content"
             android:text="Buscar"
             android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txClear"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Borrar"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txRange"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Rango"
+            android:textStyle="normal" />
+
+        <Button
+            android:id="@+id/txZoomOut"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔍−" />
+
+        <Button
+            android:id="@+id/txZoomIn"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔍＋" />
+
+        <Button
+            android:id="@+id/txPrint"
+            style="@style/Widget.DocReader.Tool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🖨 Impresión"
+            android:textStyle="bold" />
     </LinearLayout>
 </HorizontalScrollView>
