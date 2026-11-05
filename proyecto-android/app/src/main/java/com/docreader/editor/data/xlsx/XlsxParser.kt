@@ -77,6 +77,16 @@ object XlsxParser {
             head = head.removeRange(m.range)
         }
         sh.head = head
+        Regex("<sheetFormatPr\\b[^>]*>").find(head)?.value?.let { f ->
+            X.attr(f, "defaultColWidth")?.toFloatOrNull()?.let { sh.defColChars = it }
+            X.attr(f, "defaultRowHeight")?.toFloatOrNull()?.let { sh.defRowPt = it }
+        }
+        Regex("<pane\\b[^>]*>").find(head)?.value?.let { p ->
+            if (X.attr(p, "state")?.startsWith("frozen") == true) {
+                sh.freezeC = X.attr(p, "xSplit")?.toFloatOrNull()?.toInt() ?: 0
+                sh.freezeR = X.attr(p, "ySplit")?.toFloatOrNull()?.toInt() ?: 0
+            }
+        }
 
         val mm = Regex("<mergeCells\\b[^>]*>(.*?)</mergeCells>", RegexOption.DOT_MATCHES_ALL).find(tail)
         if (mm != null) {
