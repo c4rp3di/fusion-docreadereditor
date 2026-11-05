@@ -9,6 +9,7 @@ import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -20,160 +21,216 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.core.view.doOnNextLayout
-import androidx.recyclerview.widget.GridLayoutManager
 import com.docreader.editor.data.xlsx.Cell
 import com.docreader.editor.data.xlsx.CellStyle
 import com.docreader.editor.data.xlsx.Mod
 import com.docreader.editor.data.xlsx.NumFmt
 import com.docreader.editor.data.xlsx.Refs
 import com.docreader.editor.data.xlsx.SheetData
+import com.docreader.editor.data.xlsx.SheetGeometry
 import com.docreader.editor.data.xlsx.SheetOps
 import com.docreader.editor.data.xlsx.XClip
 import com.docreader.editor.data.xlsx.XlsxDoc
+import com.docreader.editor.data.xlsx.colOf
+import com.docreader.editor.data.xlsx.key
+import com.docreader.editor.data.xlsx.rowOf
 import com.docreader.editor.databinding.FragmentViewerBinding
 import java.util.Currency
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
-/** Editor tipo Excel: barra de fórmulas, formato de celda, filas/columnas, ordenar, copiar/pegar, hojas. */
+/**
+ * Editor de hojas de cálculo con una vista propia (SheetGridView) al estilo de Google Sheets:
+ * cabeceras fijas, paneles inmovilizados, columnas y filas redimensionables, selección de rango, celdas combinadas,
+ * barra de fórmulas, formato, orden, filtros, copiar/pegar, hojas y deshacer.
+ */
 class XlsxEditorController(
     private val ctx: Context,
     private val b: FragmentViewerBinding,
     val doc: XlsxDoc,
     private val onPreview: () -> Unit
-) {
+) : GridHost {
     private var sheetIdx = 0
     private val cur: SheetData get() = doc.sheets[sheetIdx]
     private var ar = 0
     private var ac = 0
     private var br = 0
     private var bc = 0
-    private var rangeMode = false
+    private var extendMode = false
     private var editing = false
     private var settingText = false
     private var clip: XClip? = null
-    private var adapter: XlsxGridAdapter? = null
-    private var spanCols = -1
-    var scale = 1f
-        private set
     private var findR = 0
     private var findC = 0
+    private val grid get() = b.gridScroll
     private val tb get() = b.xlsxToolbar
 
+    private class CV(val text: String, val num: Boolean)
+    private val cache = HashMap<Long, CV>()
+    private var cacheVer = -1
+    private var cacheSheet = -1
+
     init {
-        PinchZoom(b.grid, 0.5f, 3f, { scale }, null, ::commitZoom)
+        grid.host = this
         bindToolbar()
         bindFormulaBar()
         buildTabs()
-        rebuildGrid()
-        selectionChanged()
+        selectionChanged(false)
     }
 
     fun currentSheet(): SheetData = cur
+    fun dirty() = doc.modified
+    fun markSaved() { doc.modified = false }
 
-    // ------------------------------------------------------------ acceso para el adaptador
-    fun rowsCount() = cur.rows
-    fun colsCount() = cur.colsCap
-    fun text(r: Int, c: Int) = doc.display(cur, r, c)
-    fun style(r: Int, c: Int): CellStyle? = cur.cell(r, c)?.let { doc.styles.style(it.style) }
-    fun isNumber(r: Int, c: Int) = cell(r, c)?.let { doc.value(cur, r, c) is Double } == true
-    private fun cell(r: Int, c: Int): Cell? = cur.cell(r, c)
-    fun mergeAt(r: Int, c: Int): IntArray? = SheetOps.mergeAt(cur, r, c)
-    fun isRowHidden(r: Int) = SheetOps.isRowHidden(cur, r)
-    fun isActive(r: Int, c: Int) = r == ar && c == ac
-    fun isSelected(r: Int, c: Int): Boolean {
-        val q = rect()
-        return r in q[0]..q[2] && c in q[1]..q[3] && (q[0] != q[2] || q[1] != q[3])
-    }
-
-    private fun rect() = intArrayOf(min(ar, br), min(ac, bc), max(ar, br), max(ac, bc))
     private fun dp(v: Int) = (v * ctx.resources.displayMetrics.density).toInt()
     private fun toast(m: String) = Toast.makeText(ctx, m, Toast.LENGTH_SHORT).show()
 
     private fun hideKeyboard() {
-        (ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-            .hideSoftInputFromWindow(b.fxInput.windowToken, 0)
+        (ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(b.fxInput.windowToken, 0)
     }
 
-    // ------------------------------------------------------------ cuadrícula
-    private fun rebuildGrid() {
-        val cols = cur.colsCap + 1
-        spanCols = cols
-        b.grid.layoutManager = GridLayoutManager(ctx, cols)
-        b.grid.layoutParams = b.grid.layoutParams.apply { width = (cols * dp(100) * scale).toInt() }
-        b.grid.itemAnimator = null
-        adapter = XlsxGridAdapter(this)
-        b.grid.adapter = adapter
+    // ------------------------------------------------------------ datos para la cuadrícula
+    private fun cv(r: Int, c: Int): CV {
+        if (cacheVer != doc.ver || cacheSheet != sheetIdx) { cache.clear(); cacheVer = doc.ver; cacheSheet = sheetIdx }
+        return cache.getOrPut(key(r, c)) {
+            if (cur.cell(r, c) == null) EMPTY else CV(doc.display(cur, r, c), doc.value(cur, r, c) is Double)
+        }
     }
 
-    private fun commitZoom(nz: Float, r: Float, ax: Float, ay: Float, fx: Float, fy: Float) {
-        val sx = b.gridScroll.scrollX
-        val off = b.grid.computeVerticalScrollOffset()
-        scale = nz
-        b.grid.layoutParams = b.grid.layoutParams.apply { width = ((cur.colsCap + 1) * dp(100) * scale).toInt() }
-        adapter?.notifyDataSetChanged()
-        b.gridScroll.doOnNextLayout { b.gridScroll.scrollTo(max(0, (ax * r - (fx - sx)).toInt()), 0) }
-        b.grid.doOnNextLayout { b.grid.scrollBy(0, ((off + ay) * r - fy - off).toInt()) }
+    override fun rows() = cur.rows
+    override fun cols() = cur.colsCap
+    override fun colPx(c: Int) = SheetGeometry.colPx(cur, c)
+    override fun rowPx(r: Int) = SheetGeometry.rowPx(cur, r)
+    override fun text(r: Int, c: Int) = cv(r, c).text
+    override fun style(r: Int, c: Int): CellStyle? = cur.cell(r, c)?.let { doc.styles.style(it.style) }
+    override fun isNumber(r: Int, c: Int) = cv(r, c).num
+    override fun isEmpty(r: Int, c: Int) = cv(r, c).text.isEmpty()
+    override fun merges(): List<IntArray> = cur.merges
+    override fun freezeRows() = cur.freezeR
+    override fun freezeCols() = cur.freezeC
+    override fun selection() = intArrayOf(min(ar, br), min(ac, bc), max(ar, br), max(ac, bc))
+    override fun active() = intArrayOf(ar, ac)
+
+    private fun rect() = selection()
+    private fun lastRow() = min(cur.rows - 1, max(cur.maxRow() + 20, 29))
+    private fun lastCol() = min(cur.colsCap - 1, max(cur.maxCol() + 5, 9))
+
+    override fun onSelectCell(r: Int, c: Int) {
+        if (editing) commitEdit(false)
+        val mg = SheetOps.mergeAt(cur, r, c)
+        val rr = mg?.get(0) ?: r
+        val cc = mg?.get(1) ?: c
+        if (extendMode) { br = rr; bc = cc } else { ar = rr; ac = cc; br = rr; bc = cc }
+        selectionChanged(false)
     }
 
-    private fun zoomButton(f: Float) {
-        val nz = (scale * f).coerceIn(0.5f, 3f)
-        if (kotlin.math.abs(nz - scale) < 0.01f) return
-        val cx = b.gridScroll.scrollX + b.gridScroll.width / 2f
-        val cy = b.grid.height / 2f
-        commitZoom(nz, nz / scale, cx, cy, cx, cy)
+    override fun onSelectRange(anchorR: Int, anchorC: Int, r: Int, c: Int) {
+        ar = anchorR; ac = anchorC; br = r; bc = c
+        selectionChanged(false)
     }
 
-    private fun refresh() {
-        if (cur.colsCap + 1 != spanCols) rebuildGrid() else adapter?.notifyDataSetChanged()
+    override fun onSelectCols(c1: Int, c2: Int) {
+        if (editing) commitEdit(false)
+        ar = 0; ac = c1; br = lastRow(); bc = c2
+        selectionChanged(false)
     }
 
-    private fun selectionChanged() {
-        val q = rect()
-        b.fxRef.text = if (q[0] == q[2] && q[1] == q[3]) Refs.addr(ar, ac)
-        else Refs.addr(q[0], q[1]) + ":" + Refs.addr(q[2], q[3])
+    override fun onSelectRows(r1: Int, r2: Int) {
+        if (editing) commitEdit(false)
+        ar = r1; ac = 0; br = r2; bc = lastCol()
+        selectionChanged(false)
+    }
+
+    override fun onSelectAll() {
+        if (editing) commitEdit(false)
+        ar = 0; ac = 0; br = lastRow(); bc = lastCol()
+        selectionChanged(false)
+    }
+
+    override fun onEdit() {
+        b.fxInput.requestFocus()
+        b.fxInput.setSelection(b.fxInput.text.length)
+        (ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(b.fxInput, 0)
+    }
+
+    override fun onResizeCol(c: Int, px: Float) {
+        val q = selection()
+        val lo = if (c in q[1]..q[3] && q[3] > q[1]) q[1] else c
+        val hi = if (c in q[1]..q[3] && q[3] > q[1]) q[3] else c
+        checkpoint()
+        SheetOps.setColWidth(doc, cur, lo, hi, SheetGeometry.charsFromPx(px))
+        changed()
+    }
+
+    override fun onResizeRow(r: Int, px: Float) {
+        val q = selection()
+        val lo = if (r in q[0]..q[2] && q[2] > q[0]) q[0] else r
+        val hi = if (r in q[0]..q[2] && q[2] > q[0]) q[2] else r
+        checkpoint()
+        SheetOps.setRowHeight(doc, cur, lo, hi, px * 0.75f)
+        changed()
+    }
+
+    override fun onAutoFitCol(c: Int) {
+        var maxPx = 40f
+        for (r in 0..min(cur.maxRow(), 1000)) {
+            val t = cv(r, c).text
+            if (t.isEmpty()) continue
+            val st = style(r, c)
+            val size = (st?.size ?: 11f) / 11f
+            maxPx = max(maxPx, t.length * 7.4f * size * (if (st?.bold == true) 1.12f else 1f) + 14f)
+        }
+        checkpoint()
+        SheetOps.setColWidth(doc, cur, c, c, min(80f, SheetGeometry.charsFromPx(maxPx)))
+        changed()
+    }
+
+    override fun onNeedMore(rowsNear: Boolean, colsNear: Boolean) {
+        var grew = false
+        if (rowsNear && cur.rows < 5000) { cur.rows = min(5000, cur.rows + 30); grew = true }
+        if (colsNear && cur.colsCap < 100) { cur.colsCap = min(100, cur.colsCap + 6); grew = true }
+        if (grew) grid.relayout()
+    }
+
+    override fun onHeaderLongPress(isCol: Boolean, index: Int, anchor: View) {
+        val q = selection()
+        if (isCol) { if (index !in q[1]..q[3] || q[0] != 0) onSelectCols(index, index) }
+        else { if (index !in q[0]..q[2] || q[1] != 0) onSelectRows(index, index) }
+        val opts = if (isCol) listOf(
+            "Insertar columna a la izquierda" to "il", "Insertar columna a la derecha" to "ir", "Eliminar columna(s)" to "dc",
+            "Ocultar columna(s)" to "hidec", "Mostrar columnas ocultas" to "showall", "Ajustar ancho al contenido" to "fitc",
+            "Inmovilizar hasta esta columna" to "freezec", "Ordenar A → Z" to "sortasc", "Ordenar Z → A" to "sortdesc"
+        ) else listOf(
+            "Insertar fila arriba" to "ia", "Insertar fila abajo" to "ib", "Eliminar fila(s)" to "df",
+            "Ocultar fila(s)" to "hider", "Mostrar filas ocultas" to "showall", "Inmovilizar hasta esta fila" to "freezer"
+        )
+        val m = PopupMenu(ctx, anchor)
+        opts.forEachIndexed { i, o -> m.menu.add(0, i, i, o.first) }
+        m.setOnMenuItemClickListener { structureOp(opts[it.itemId].second, index); true }
+        m.show()
+    }
+
+    // ------------------------------------------------------------ selección / interfaz
+    private fun selectionChanged(reveal: Boolean = false) {
+        val q = selection()
+        b.fxRef.text = if (q[0] == q[2] && q[1] == q[3]) Refs.addr(ar, ac) else Refs.addr(q[0], q[1]) + ":" + Refs.addr(q[2], q[3])
         if (!editing) setInput(doc.raw(cur, ar, ac))
-        refresh()
+        if (reveal) grid.scrollToCell(ar, ac)
+        grid.invalidate()
         updateToolbarState()
+    }
+
+    /** Tras cambiar datos o tamaños: recalcula la cuadrícula. */
+    private fun changed(reveal: Boolean = false) {
+        grid.relayout()
+        selectionChanged(reveal)
     }
 
     private fun setInput(t: String) {
         settingText = true
         b.fxInput.setText(t)
         settingText = false
-    }
-
-    fun onTap(r: Int, c: Int) {
-        if (editing) commitEdit(false)
-        val mg = SheetOps.mergeAt(cur, r, c)
-        val rr = mg?.get(0) ?: r
-        val cc = mg?.get(1) ?: c
-        if (rangeMode) { br = rr; bc = cc } else { ar = rr; ac = cc; br = rr; bc = cc }
-        selectionChanged()
-        if (!rangeMode && r == ar && c == ac) Unit
-    }
-
-    fun onLongTap(r: Int, c: Int) {
-        if (editing) commitEdit(false)
-        ar = r; ac = c; br = r; bc = c
-        rangeMode = true
-        updateToolbarState()
-        selectionChanged()
-        toast("Modo rango: toca la celda final")
-    }
-
-    fun onHeaderTap(r: Int, c: Int) {
-        if (editing) commitEdit(false)
-        val lastRow = min(cur.rows - 1, max(cur.maxRow() + 20, 29))
-        val lastCol = min(cur.colsCap - 1, max(cur.maxCol() + 5, 9))
-        if (r >= 0 && c < 0) { // cabecera de fila
-            if (rangeMode) { br = r; bc = lastCol } else { ar = r; ac = 0; br = r; bc = lastCol }
-        } else if (c >= 0 && r < 0) { // cabecera de columna
-            if (rangeMode) { br = lastRow; bc = c } else { ar = 0; ac = c; br = lastRow; bc = c }
-        } else { ar = 0; ac = 0; br = lastRow; bc = lastCol }
-        selectionChanged()
     }
 
     // ------------------------------------------------------------ barra de fórmulas
@@ -207,7 +264,7 @@ class XlsxEditorController(
             b.fxInput.clearFocus()
             hideKeyboard()
         }
-        selectionChanged()
+        changed(move)
     }
 
     private fun insertIntoInput(t: String) {
@@ -222,19 +279,6 @@ class XlsxEditorController(
     }
 
     // ------------------------------------------------------------ deshacer
-    fun shortcut(code: Int): Boolean = when (code) {
-        android.view.KeyEvent.KEYCODE_Z -> { undo(); true }
-        android.view.KeyEvent.KEYCODE_Y -> { redo(); true }
-        android.view.KeyEvent.KEYCODE_F -> { findDialog(); true }
-        android.view.KeyEvent.KEYCODE_B -> { applyMod(Mod(bold = style(ar, ac)?.bold != true)); true }
-        android.view.KeyEvent.KEYCODE_I -> { applyMod(Mod(italic = style(ar, ac)?.italic != true)); true }
-        android.view.KeyEvent.KEYCODE_U -> { applyMod(Mod(underline = style(ar, ac)?.underline != true)); true }
-        else -> false
-    }
-
-    fun dirty() = doc.modified
-    fun markSaved() { doc.modified = false }
-
     private fun checkpoint() {
         doc.modified = true
         doc.undo.addLast(doc.snapshot())
@@ -260,13 +304,23 @@ class XlsxEditorController(
     private fun afterRestore() {
         editing = false
         buildTabs()
-        selectionChanged()
+        changed()
         updateUndo()
     }
 
     private fun updateUndo() {
         tb.txUndo.alpha = if (doc.undo.isEmpty()) 0.35f else 1f
         tb.txRedo.alpha = if (doc.redo.isEmpty()) 0.35f else 1f
+    }
+
+    fun shortcut(code: Int): Boolean = when (code) {
+        KeyEvent.KEYCODE_Z -> { undo(); true }
+        KeyEvent.KEYCODE_Y -> { redo(); true }
+        KeyEvent.KEYCODE_F -> { findDialog(); true }
+        KeyEvent.KEYCODE_B -> { applyMod(Mod(bold = style(ar, ac)?.bold != true)); true }
+        KeyEvent.KEYCODE_I -> { applyMod(Mod(italic = style(ar, ac)?.italic != true)); true }
+        KeyEvent.KEYCODE_U -> { applyMod(Mod(underline = style(ar, ac)?.underline != true)); true }
+        else -> false
     }
 
     // ------------------------------------------------------------ hojas
@@ -293,10 +347,10 @@ class XlsxEditorController(
         if (editing) commitEdit(false)
         sheetIdx = i
         ar = 0; ac = 0; br = 0; bc = 0
-        rangeMode = false
+        extendMode = false
         buildTabs()
-        rebuildGrid()
-        selectionChanged()
+        grid.resetScroll()
+        changed()
     }
 
     private fun addSheet() {
@@ -337,7 +391,7 @@ class XlsxEditorController(
                     s.dirty = true
                     doc.invalidate()
                     buildTabs()
-                    selectionChanged()
+                    changed()
                 }
             }.setNegativeButton("Cancelar", null).show()
     }
@@ -345,8 +399,8 @@ class XlsxEditorController(
     // ------------------------------------------------------------ barra de herramientas
     private fun bindToolbar() {
         tb.txPrint.setOnClickListener { if (editing) commitEdit(false); onPreview() }
-        tb.txZoomOut.setOnClickListener { zoomButton(1f / 1.25f) }
-        tb.txZoomIn.setOnClickListener { zoomButton(1.25f) }
+        tb.txZoomOut.setOnClickListener { grid.zoomBy(1f / 1.25f) }
+        tb.txZoomIn.setOnClickListener { grid.zoomBy(1.25f) }
         tb.txUndo.setOnClickListener { undo() }
         tb.txRedo.setOnClickListener { redo() }
         tb.txSum.setOnClickListener { sumMenu(it) }
@@ -365,18 +419,19 @@ class XlsxEditorController(
         tb.txDecDown.setOnClickListener { applyMod(Mod(numFmt = NumFmt.adjustDecimals(style(ar, ac)?.numFmt ?: "General", -1))) }
         tb.txBorder.setOnClickListener { applyMod(Mod(border = style(ar, ac)?.border != true)) }
         tb.txRange.setOnClickListener {
-            rangeMode = !rangeMode
-            if (!rangeMode) { br = ar; bc = ac; selectionChanged() }
+            extendMode = !extendMode
+            if (!extendMode) { br = ar; bc = ac; selectionChanged() }
             updateToolbarState()
-            toast(if (rangeMode) "Modo rango activado" else "Modo rango desactivado")
+            toast(if (extendMode) "Toca la celda final para ampliar la selección" else "Selección normal")
         }
         tb.txCopy.setOnClickListener { copy(false) }
         tb.txCut.setOnClickListener { copy(true) }
         tb.txPaste.setOnClickListener { paste() }
         tb.txClear.setOnClickListener {
-            val q = rect(); checkpoint(); SheetOps.clear(doc, cur, q[0], q[1], q[2], q[3]); selectionChanged()
+            val q = rect(); checkpoint(); SheetOps.clear(doc, cur, q[0], q[1], q[2], q[3]); changed()
         }
         tb.txRows.setOnClickListener { rowsMenu(it) }
+        tb.txFreeze.setOnClickListener { freezeMenu(it) }
         tb.txSort.setOnClickListener { sortMenu(it) }
         tb.txFilter.setOnClickListener { filterMenu(it) }
         tb.txFind.setOnClickListener { findDialog() }
@@ -395,7 +450,7 @@ class XlsxEditorController(
         setOn(tb.txLeft, st?.alignH == "left")
         setOn(tb.txCenter, st?.alignH == "center")
         setOn(tb.txRight, st?.alignH == "right")
-        setOn(tb.txRange, rangeMode)
+        setOn(tb.txRange, extendMode)
         updateUndo()
     }
 
@@ -404,7 +459,7 @@ class XlsxEditorController(
         val q = rect()
         checkpoint()
         SheetOps.applyStyle(doc, cur, q[0], q[1], q[2], q[3], m)
-        selectionChanged()
+        changed()
     }
 
     // ------------------------------------------------------------ menús y diálogos
@@ -418,32 +473,26 @@ class XlsxEditorController(
             checkpoint()
             val (r, c) = SheetOps.autoFunction(doc, cur, opts[it.itemId].second, q[0], q[1], q[2], q[3])
             ar = r; ac = c; br = r; bc = c
-            selectionChanged()
+            changed(true)
             true
         }
         m.show()
     }
 
     private fun fxDialog() {
-        val fns = arrayOf("SUM(", "AVERAGE(", "MIN(", "MAX(", "COUNT(", "COUNTA(", "IF(", "IFERROR(", "AND(", "OR(",
-            "ROUND(", "ABS(", "SQRT(", "POWER(", "MOD(", "SUMIF(", "COUNTIF(", "AVERAGEIF(", "VLOOKUP(", "INDEX(",
-            "MATCH(", "CONCAT(", "LEFT(", "RIGHT(", "MID(", "LEN(", "UPPER(", "LOWER(", "TRIM(", "TEXT(",
-            "TODAY(", "NOW(", "DATE(", "YEAR(", "MONTH(", "DAY(")
+        val fns = arrayOf("SUM(", "AVERAGE(", "MIN(", "MAX(", "COUNT(", "COUNTA(", "IF(", "IFERROR(", "IFS(", "AND(", "OR(",
+            "ROUND(", "ABS(", "SQRT(", "POWER(", "MOD(", "SUMIF(", "SUMIFS(", "COUNTIF(", "COUNTIFS(", "AVERAGEIF(", "VLOOKUP(",
+            "XLOOKUP(", "INDEX(", "MATCH(", "CONCAT(", "TEXTJOIN(", "LEFT(", "RIGHT(", "MID(", "LEN(", "UPPER(", "LOWER(", "TRIM(",
+            "TEXT(", "TODAY(", "NOW(", "DATE(", "YEAR(", "MONTH(", "DAY(", "LARGE(", "SMALL(")
         AlertDialog.Builder(ctx).setTitle("Insertar función").setItems(fns) { _, i -> insertIntoInput(fns[i]) }.show()
     }
 
     private fun fmtMenu(anchor: View) {
         val cur2 = try { Currency.getInstance(Locale.getDefault()).symbol } catch (e: Exception) { "$" }
         val opts = listOf(
-            "General" to "General",
-            "Número (0,00)" to "0.00",
-            "Miles (#.##0)" to "#,##0",
-            "Moneda" to "#,##0.00\\ \"$cur2\"",
-            "Porcentaje" to "0.00%",
-            "Fecha" to "dd/mm/yyyy",
-            "Hora" to "h:mm:ss",
-            "Fecha y hora" to "dd/mm/yyyy\\ h:mm",
-            "Texto" to "@"
+            "General" to "General", "Número (0,00)" to "0.00", "Miles (#.##0)" to "#,##0",
+            "Moneda" to "#,##0.00\\ \"$cur2\"", "Porcentaje" to "0.00%", "Fecha" to "dd/mm/yyyy", "Hora" to "h:mm:ss",
+            "Fecha y hora" to "dd/mm/yyyy\\ h:mm", "Texto" to "@"
         )
         val m = PopupMenu(ctx, anchor)
         opts.forEachIndexed { i, o -> m.menu.add(0, i, i, o.first) }
@@ -482,8 +531,7 @@ class XlsxEditorController(
         val q = rect()
         val c = SheetOps.copy(doc, cur, q[0], q[1], q[2], q[3], cut)
         clip = c
-        (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-            .setPrimaryClip(ClipData.newPlainText("celdas", c.tsv))
+        (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("celdas", c.tsv))
         toast(if (cut) "Cortado" else "Copiado")
     }
 
@@ -503,34 +551,96 @@ class XlsxEditorController(
             doc.undo.removeLast(); updateUndo()
             return toast("Nada que pegar")
         }
-        selectionChanged()
+        changed()
+    }
+
+    // ------------------------------------------------------------ estructura: filas, columnas, ocultar, combinar, rellenar
+    private fun structureOp(op: String, index: Int = -1) {
+        if (editing) commitEdit(false)
+        val q = selection()
+        val nr = q[2] - q[0] + 1
+        val nc = q[3] - q[1] + 1
+        checkpoint()
+        when (op) {
+            "ia" -> SheetOps.shiftRows(doc, cur, q[0], nr)
+            "ib" -> SheetOps.shiftRows(doc, cur, q[2] + 1, nr)
+            "il" -> SheetOps.shiftCols(doc, cur, q[1], nc)
+            "ir" -> SheetOps.shiftCols(doc, cur, q[3] + 1, nc)
+            "df" -> SheetOps.shiftRows(doc, cur, q[0], -nr)
+            "dc" -> SheetOps.shiftCols(doc, cur, q[1], -nc)
+            "merge" -> SheetOps.merge(doc, cur, q[0], q[1], q[2], q[3])
+            "unmerge" -> SheetOps.unmerge(doc, cur, q[0], q[1], q[2], q[3])
+            "hider" -> SheetOps.hideRows(doc, cur, q[0], q[2])
+            "hidec" -> SheetOps.setColHidden(doc, cur, q[1], q[3], true)
+            "showall" -> { SheetOps.showAllRows(doc, cur); SheetOps.showAllCols(doc, cur) }
+            "fitc" -> { for (c in q[1]..q[3]) autoFitNoCheckpoint(c) }
+            "fillDown" -> SheetOps.fill(doc, cur, q[0], q[1], q[2], q[3], true)
+            "fillRight" -> SheetOps.fill(doc, cur, q[0], q[1], q[2], q[3], false)
+            "freezec" -> freezeTo(cur.freezeR, (if (index >= 0) index else q[3]) + 1)
+            "freezer" -> freezeTo((if (index >= 0) index else q[2]) + 1, cur.freezeC)
+            "sortasc", "sortdesc" -> {
+                val col0 = index.coerceAtLeast(0)
+                val row0 = (0..cur.maxRow()).firstOrNull { !isEmpty(it, col0) } ?: 0
+                val reg = SheetOps.currentRegion(cur, row0, col0)
+                SheetOps.sort(doc, cur, reg[0] + 1, reg[1], reg[2], reg[3], index.coerceAtLeast(reg[1]), op == "sortasc")
+            }
+        }
+        if (op.startsWith("d") || op == "ia" || op == "il") { br = ar; bc = ac }
+        changed()
+    }
+
+    private fun autoFitNoCheckpoint(c: Int) {
+        var maxPx = 40f
+        for (r in 0..min(cur.maxRow(), 1000)) {
+            val t = cv(r, c).text
+            if (t.isEmpty()) continue
+            val st = style(r, c)
+            maxPx = max(maxPx, t.length * 7.4f * ((st?.size ?: 11f) / 11f) * (if (st?.bold == true) 1.12f else 1f) + 14f)
+        }
+        SheetOps.setColWidth(doc, cur, c, c, min(80f, SheetGeometry.charsFromPx(maxPx)))
+    }
+
+    private fun freezeTo(r: Int, c: Int) {
+        cur.freezeR = r.coerceAtLeast(0)
+        cur.freezeC = c.coerceAtLeast(0)
+        cur.freezeDirty = true
+        cur.dirty = true
     }
 
     private fun rowsMenu(anchor: View) {
-        val q = rect()
-        val nr = q[2] - q[0] + 1
-        val nc = q[3] - q[1] + 1
-        val opts = listOf("Insertar fila(s) arriba" to "ia", "Insertar fila(s) abajo" to "ib",
+        val opts = listOf(
+            "Insertar fila(s) arriba" to "ia", "Insertar fila(s) abajo" to "ib",
             "Insertar columna(s) a la izquierda" to "il", "Insertar columna(s) a la derecha" to "ir",
             "Eliminar fila(s)" to "df", "Eliminar columna(s)" to "dc",
-            "Combinar celdas" to "merge", "Separar celdas" to "unmerge")
+            "Combinar celdas" to "merge", "Separar celdas" to "unmerge",
+            "Ocultar fila(s)" to "hider", "Ocultar columna(s)" to "hidec", "Mostrar filas y columnas ocultas" to "showall",
+            "Ajustar ancho al contenido" to "fitc",
+            "Rellenar hacia abajo" to "fillDown", "Rellenar hacia la derecha" to "fillRight"
+        )
+        val m = PopupMenu(ctx, anchor)
+        opts.forEachIndexed { i, o -> m.menu.add(0, i, i, o.first) }
+        m.setOnMenuItemClickListener { structureOp(opts[it.itemId].second); true }
+        m.show()
+    }
+
+    private fun freezeMenu(anchor: View) {
+        val opts = listOf(
+            "Inmovilizar 1 fila" to "r1", "Inmovilizar 1 columna" to "c1",
+            "Inmovilizar hasta la fila ${ar + 1}" to "rc", "Inmovilizar hasta la columna ${Refs.idxToCol(ac)}" to "cc",
+            "Quitar inmovilización" to "none"
+        )
         val m = PopupMenu(ctx, anchor)
         opts.forEachIndexed { i, o -> m.menu.add(0, i, i, o.first) }
         m.setOnMenuItemClickListener {
-            if (editing) commitEdit(false)
-            checkpoint()
             when (opts[it.itemId].second) {
-                "ia" -> SheetOps.shiftRows(doc, cur, q[0], nr)
-                "ib" -> SheetOps.shiftRows(doc, cur, q[2] + 1, nr)
-                "il" -> SheetOps.shiftCols(doc, cur, q[1], nc)
-                "ir" -> SheetOps.shiftCols(doc, cur, q[3] + 1, nc)
-                "df" -> SheetOps.shiftRows(doc, cur, q[0], -nr)
-                "dc" -> SheetOps.shiftCols(doc, cur, q[1], -nc)
-                "merge" -> SheetOps.merge(doc, cur, q[0], q[1], q[2], q[3])
-                "unmerge" -> SheetOps.unmerge(doc, cur, q[0], q[1], q[2], q[3])
+                "r1" -> freezeTo(1, cur.freezeC)
+                "c1" -> freezeTo(cur.freezeR, 1)
+                "rc" -> freezeTo(ar + 1, cur.freezeC)
+                "cc" -> freezeTo(cur.freezeR, ac + 1)
+                else -> freezeTo(0, 0)
             }
-            br = ar; bc = ac
-            selectionChanged()
+            doc.modified = true
+            changed()
             true
         }
         m.show()
@@ -551,7 +661,7 @@ class XlsxEditorController(
             val r1 = if (header) reg[0] + 1 else reg[0]
             checkpoint()
             SheetOps.sort(doc, cur, r1, reg[1], reg[2], reg[3], keyCol, asc)
-            selectionChanged()
+            changed()
             true
         }
         m.show()
@@ -564,7 +674,7 @@ class XlsxEditorController(
         m.menu.add(0, 1, 1, "Mostrar todas las filas")
         m.setOnMenuItemClickListener {
             if (editing) commitEdit(false)
-            if (it.itemId == 1) { checkpoint(); SheetOps.showAllRows(doc, cur); selectionChanged() }
+            if (it.itemId == 1) { checkpoint(); SheetOps.showAllRows(doc, cur); changed() }
             else filterDialog()
             true
         }
@@ -574,7 +684,7 @@ class XlsxEditorController(
     private fun filterDialog() {
         val q = rect()
         val reg = if (q[0] == q[2] && q[1] == q[3]) SheetOps.currentRegion(cur, ar, ac) else q
-        val r1 = reg[0] + 1          // la primera fila es el encabezado
+        val r1 = reg[0] + 1
         val r2 = reg[2]
         if (r2 < r1) { toast("No hay filas de datos que filtrar"); return }
         val col = ac
@@ -588,9 +698,9 @@ class XlsxEditorController(
                 val vis = values.filterIndexed { i, _ -> checked[i] }.toSet()
                 checkpoint()
                 SheetOps.filterRows(doc, cur, r1, r2, col, vis)
-                selectionChanged()
+                changed()
             }
-            .setNeutralButton("Mostrar todas") { _, _ -> checkpoint(); SheetOps.showAllRows(doc, cur); selectionChanged() }
+            .setNeutralButton("Mostrar todas") { _, _ -> checkpoint(); SheetOps.showAllRows(doc, cur); changed() }
             .setNegativeButton("Cancelar", null).show()
     }
 
@@ -615,20 +725,19 @@ class XlsxEditorController(
 
     private fun findNext(q: String, matchCase: Boolean): Boolean {
         if (q.isEmpty()) return false
-        val keys = cur.cells.keys.sortedWith(compareBy({ com.docreader.editor.data.xlsx.rowOf(it) }, { com.docreader.editor.data.xlsx.colOf(it) }))
+        val keys = cur.cells.keys.sortedWith(compareBy({ rowOf(it) }, { colOf(it) }))
         if (keys.isEmpty()) return false
         val start = keys.indexOfFirst {
-            val r = com.docreader.editor.data.xlsx.rowOf(it); val c = com.docreader.editor.data.xlsx.colOf(it)
+            val r = rowOf(it); val c = colOf(it)
             r > findR || (r == findR && c > findC)
         }.let { if (it < 0) 0 else it }
         for (k in 0 until keys.size) {
-            val key = keys[(start + k) % keys.size]
-            val r = com.docreader.editor.data.xlsx.rowOf(key); val c = com.docreader.editor.data.xlsx.colOf(key)
+            val kk = keys[(start + k) % keys.size]
+            val r = rowOf(kk); val c = colOf(kk)
             if (doc.display(cur, r, c).contains(q, ignoreCase = !matchCase)) {
                 findR = r; findC = c
                 ar = r; ac = c; br = r; bc = c
-                selectionChanged()
-                b.grid.scrollToPosition((r + 1) * (cur.colsCap + 1) + c + 1)
+                selectionChanged(true)
                 return true
             }
         }
@@ -638,11 +747,11 @@ class XlsxEditorController(
     }
 
     private fun replaceCurrent(q: String, repl: String, matchCase: Boolean) {
-        val c = cell(ar, ac)
+        val c = cur.cell(ar, ac)
         if (q.isNotEmpty() && c != null && c.kind == Cell.STR && c.formula == null && c.text.contains(q, ignoreCase = !matchCase)) {
             checkpoint()
             SheetOps.setInput(doc, cur, ar, ac, "'" + c.text.replace(q, repl, ignoreCase = !matchCase))
-            selectionChanged()
+            changed()
         }
         findNext(q, matchCase)
     }
@@ -657,7 +766,9 @@ class XlsxEditorController(
                 n++
             }
         }
-        if (n > 0) { cur.dirty = true; doc.invalidate(); selectionChanged() }
+        if (n > 0) { cur.dirty = true; doc.invalidate(); changed() }
         return n
     }
+
+    companion object { private val EMPTY = CV("", false) }
 }
