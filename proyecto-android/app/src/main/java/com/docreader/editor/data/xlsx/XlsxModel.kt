@@ -38,6 +38,11 @@ class SheetData(var name: String, val path: String, val isNew: Boolean = false) 
     var dirty = false
     var rows = 30
     var colsCap = 10
+    var freezeR = 0
+    var freezeC = 0
+    var freezeDirty = false
+    var defColChars = 8.43f
+    var defRowPt = 15f
     val calc = HashMap<Long, Any?>()
 
     fun cell(r: Int, c: Int): Cell? = cells[key(r, c)]
@@ -81,7 +86,10 @@ class XlsxDoc(
     val undo = ArrayDeque<List<SheetSnap>>()
     val redo = ArrayDeque<List<SheetSnap>>()
 
-    fun invalidate() { for (s in sheets) s.calc.clear() }
+    /** Contador que sube con cada cambio (para invalidar cachés de la vista). */
+    var ver = 0
+
+    fun invalidate() { for (s in sheets) s.calc.clear(); ver++ }
 
     fun snapshot(): List<SheetSnap> = sheets.map {
         SheetSnap(it, HashMap(it.cells), ArrayList(it.cols), it.merges.map { m -> m.clone() }, HashMap(it.rowAttrs), it.name)
