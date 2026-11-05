@@ -131,3 +131,14 @@ buscar y reemplazar, quitar formato y borrar párrafo.
 - Word: sin notas al pie ni comentarios; pies de página y encabezados solo en la vista de páginas.
 - PDF: sin firma digital con certificado; las anotaciones quedan fijas tras guardar.
 - Interfaz solo en español y sin diseño específico para tablet.
+
+## Excel: nueva vista de hoja (estilo Google Sheets)
+- Cuadrícula propia con cabeceras de columna (A, B, C…) y fila (1, 2, 3…) siempre visibles, selección con borde azul, rango arrastrando el asa
+  de la esquina o con pulsación larga, y desplazamiento con inercia en las dos direcciones. Zoom por pellizco (fluido) y botones 🔍.
+- Anchos de columna y alturas de fila **redimensionables arrastrando el borde de la cabecera** (doble toque en el borde = ajustar al contenido);
+  se guardan en el archivo. Columnas/filas ocultas, celdas combinadas (ocupan todo su rango) y texto que desborda a celdas vacías.
+- **Paneles inmovilizados** (botón «Inmovilizar»): primera fila/columna o hasta la celda actual; se guardan en el archivo.
+- Tocar una cabecera selecciona toda la columna/fila; pulsación larga en una cabecera abre su menú (insertar, eliminar, ocultar, ajustar ancho,
+  inmovilizar, ordenar). Doble toque en una celda: editar en la barra de fórmulas. Rellenar hacia abajo/derecha.
+- Barra de herramientas reordenada (deshacer, copiar/pegar, formato, números, fórmulas, filas/columnas, orden/filtros).
+- Modo oscuro propio para la hoja.
