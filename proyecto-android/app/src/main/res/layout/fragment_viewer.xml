@@ -177,18 +177,12 @@
         android:layout_weight="1"
         android:visibility="gone" />
 
-    <com.docreader.editor.ui.viewer.WideScrollView
+    <com.docreader.editor.ui.viewer.SheetGridView
         android:id="@+id/gridScroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:visibility="gone">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/grid"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent" />
-    </com.docreader.editor.ui.viewer.WideScrollView>
+        android:visibility="gone" />
 
     <HorizontalScrollView
         android:id="@+id/tabsScroll"
