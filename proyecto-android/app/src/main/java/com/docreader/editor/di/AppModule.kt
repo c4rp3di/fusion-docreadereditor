@@ -2,10 +2,9 @@ package com.docreader.editor.di
 
 import android.content.Context
 import androidx.room.Room
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.docreader.editor.data.db.AppDatabase
 import com.docreader.editor.data.db.DocumentDao
+import com.docreader.editor.data.db.Migration1To2
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,11 +18,7 @@ object AppModule {
     @Provides @Singleton
     fun database(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "docs.db")
-            .addMigrations(object : Migration(1, 2) {
-                override fun migrate(db: SupportSQLiteDatabase) {
-                    db.execSQL("ALTER TABLE documents ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
-                }
-            })
+            .addMigrations(Migration1To2())
             .build()
 
     @Provides
