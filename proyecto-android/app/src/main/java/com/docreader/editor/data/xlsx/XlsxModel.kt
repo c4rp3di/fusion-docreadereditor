@@ -135,7 +135,7 @@ class XlsxDoc(
     fun plainText(): String {
         val sb = StringBuilder()
         for (s in sheets) {
-            for ((k, cell) in s.cells) {
+            for (cell in s.cells.values) {
                 if (cell.kind == Cell.STR && cell.text.isNotBlank()) sb.append(cell.text).append(' ')
                 else if (cell.kind == Cell.NUM && cell.formula == null) sb.append(cell.text).append(' ')
             }
