@@ -85,13 +85,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ------------------------------------------------------------ atajos de teclado (Ctrl + tecla)
-    override fun dispatchKeyEvent(e: KeyEvent): Boolean {
-        if (e.action == KeyEvent.ACTION_DOWN && e.isCtrlPressed && e.repeatCount == 0) {
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.isCtrlPressed && event.repeatCount == 0) {
             val f = (supportFragmentManager.findFragmentById(R.id.nav_host) as? NavHostFragment)
                 ?.childFragmentManager?.primaryNavigationFragment
-            if ((f as? ShortcutHandler)?.onShortcut(e.keyCode) == true) return true
+            if ((f as? ShortcutHandler)?.onShortcut(event.keyCode) == true) return true
         }
-        return super.dispatchKeyEvent(e)
+        return super.dispatchKeyEvent(event)
     }
 
     // ------------------------------------------------------------ abrir desde otras apps
