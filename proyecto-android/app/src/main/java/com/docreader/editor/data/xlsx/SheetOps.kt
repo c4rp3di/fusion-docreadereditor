@@ -67,7 +67,7 @@ object SheetOps {
         touch(doc, sh)
     }
 
-    private fun withFormula(c: Cell, f: String?, row: Int = -1) =
+    private fun withFormula(c: Cell, f: String?) =
         Cell(c.kind, c.text, f, c.style, c.cKind, c.cText)
 
     // ------------------------------------------------------------ insertar / eliminar filas y columnas
