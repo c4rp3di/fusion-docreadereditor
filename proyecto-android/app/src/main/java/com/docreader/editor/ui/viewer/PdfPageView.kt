@@ -17,6 +17,10 @@ class PdfPageView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     var pageH = 842f
     var pageIndex = -1
     var ctl: PdfEditorController? = null
+    /** Zona visible renderizada a mayor resolución (se dibuja sobre la imagen base). */
+    var detail: Bitmap? = null
+    val detailRect = RectF()
+    var detailZoom = 0f
     var night: Boolean = false
         set(v) {
             field = v
@@ -37,6 +41,8 @@ class PdfPageView @JvmOverloads constructor(context: Context, attrs: AttributeSe
         dst.set(0f, 0f, width.toFloat(), height.toFloat())
         val bmp = bitmap
         if (bmp != null) canvas.drawBitmap(bmp, null, dst, paint) else canvas.drawColor(Color.WHITE)
+        val dt = detail
+        if (dt != null && ctl?.currentZoom() == detailZoom) canvas.drawBitmap(dt, null, detailRect, paint)
         ctl?.drawOverlay(canvas, this)
     }
 
