@@ -1,8 +1,10 @@
 package com.docreader.editor.ui.viewer
 
+import android.animation.ValueAnimator
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
+import androidx.core.animation.doOnEnd
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.abs
 
@@ -54,11 +56,29 @@ class PinchZoom(
     private val tap = GestureDetector(rv.context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
             val t = doubleTapTarget?.invoke() ?: return false
-            val z = current()
-            if (abs(t - z) > 0.01f) onCommit(t, t / z, e.x, e.y, e.x, e.y)
+            animateTo(t, e.x, e.y)
             return true
         }
     })
+
+    /** Zoom animado (doble toque y botones): escala la vista con la GPU y al terminar entrega el zoom final. */
+    fun animateTo(target: Float, ax: Float, ay: Float) {
+        val z = current()
+        val t = target.coerceIn(minZoom, maxZoom)
+        if (abs(t - z) < 0.01f) return
+        val ratio = t / z
+        rv.pivotX = ax
+        rv.pivotY = ay
+        ValueAnimator.ofFloat(1f, ratio).apply {
+            duration = 170
+            addUpdateListener { rv.scaleX = it.animatedValue as Float; rv.scaleY = it.animatedValue as Float }
+            doOnEnd {
+                rv.scaleX = 1f; rv.scaleY = 1f; rv.translationX = 0f; rv.translationY = 0f
+                onCommit(t, ratio, ax, ay, ax, ay)
+            }
+            start()
+        }
+    }
 
     private fun feed(e: MotionEvent) {
         // Los eventos llegan en coordenadas ya afectadas por el zoom en vivo: se devuelven a las del padre
