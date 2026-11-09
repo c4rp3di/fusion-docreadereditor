@@ -14,6 +14,11 @@ class PdfPagesAdapter(private val c: PdfEditorController) : RecyclerView.Adapter
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         VH(ItemPdfPageBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
+    override fun onViewRecycled(holder: VH) {
+        holder.b.root.detail = null
+        super.onViewRecycled(holder)
+    }
+
     override fun onBindViewHolder(h: VH, position: Int) {
         val v = h.b.root
         val (w, hh) = c.pageSize(position)
@@ -22,6 +27,7 @@ class PdfPagesAdapter(private val c: PdfEditorController) : RecyclerView.Adapter
         v.pageIndex = position
         v.ctl = c
         v.bitmap = c.cachedBitmap(position)
+        v.detail = null
         v.requestLayout()
         v.invalidate()
         c.onPageBound(v)
