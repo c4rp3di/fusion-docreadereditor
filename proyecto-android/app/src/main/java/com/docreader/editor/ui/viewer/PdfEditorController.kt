@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PointF
@@ -58,6 +59,8 @@ import com.docreader.editor.data.pdf.TextBox
 import com.docreader.editor.databinding.FragmentViewerBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -103,6 +106,8 @@ class PdfEditorController(
     private val loading = HashSet<Int>()
     private var hinted = false
     private var night = false
+    private var pinch: PinchZoom? = null
+    private var detailJob: Job? = null
     private val adapter = PdfPagesAdapter(this)
 
     // selección
@@ -180,14 +185,17 @@ class PdfEditorController(
             }
         }
         loadWords(p)
+        if (zoom > 1.15f) scheduleDetail()
     }
+
+    fun currentZoom() = zoom
 
     private suspend fun renderPage(i: Int): Bitmap? = renderMutex.withLock {
         withContext(Dispatchers.IO) {
             try {
                 val r = renderer ?: return@withContext null
                 r.openPage(i).use { pg ->
-                    val w = min(widthPx(), 2800)
+                    val w = min(max(widthPx(), ctx.resources.displayMetrics.widthPixels), 1600)
                     val h = (w.toFloat() / pg.width * pg.height).toInt()
                     Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also {
                         it.eraseColor(Color.WHITE)
@@ -227,20 +235,35 @@ class PdfEditorController(
 
     // ------------------------------------------------------------ zoom
     private fun bindPinch() {
-        PinchZoom(
+        pinch = PinchZoom(
             b.pages, 1f, 4f, { zoom },
             { if (mode == Mode.SELECT && selLo < 0) (if (zoom < 1.5f) 2.5f else 1f) else null },
             ::commitZoom
         )
+        b.pages.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(rv: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) scheduleDetail()
+            }
+        })
+        b.pdfScroll.setOnScrollChangeListener { _, _, _, _, _ -> scheduleDetail() }
     }
 
+    /**
+     * Zoom sin parpadeos: las páginas conservan la imagen que ya tenían (ampliada) y la cambian por la nítida
+     * cuando termina de dibujarse; el punto bajo los dedos se mantiene fijo.
+     */
     private fun commitZoom(nz: Float, r: Float, ax: Float, ay: Float, fx: Float, fy: Float) {
         val sx = b.pdfScroll.scrollX
-        val off = b.pages.computeVerticalScrollOffset()
+        val child = b.pages.findChildViewUnder(ax, ay)
+        val pos = if (child != null) b.pages.getChildAdapterPosition(child) else -1
+        val h0 = child?.height ?: 0
+        val frac = if (child != null && h0 > 0) (ay - child.top) / h0 else 0f
         zoom = nz
         applyZoom()
         b.pdfScroll.doOnNextLayout { b.pdfScroll.scrollTo(max(0, (ax * r - (fx - sx)).toInt()), 0) }
-        b.pages.doOnNextLayout { b.pages.scrollBy(0, ((off + ay) * r - fy - off).toInt()) }
+        if (pos >= 0) {
+            (b.pages.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(pos, (fy - frac * h0 * r).toInt())
+        }
     }
 
     private fun zoomButton(f: Float) {
@@ -248,13 +271,75 @@ class PdfEditorController(
         if (abs(nz - zoom) < 0.01f) return
         val cx = b.pdfScroll.scrollX + b.pdfScroll.width / 2f
         val cy = b.pages.height / 2f
-        commitZoom(nz, nz / zoom, cx, cy, cx, cy)
+        pinch?.animateTo(nz, cx, cy)
     }
 
     private fun applyZoom() {
         b.pages.layoutParams = b.pages.layoutParams.apply { width = widthPx() }
-        cache.evictAll()
-        adapter.notifyDataSetChanged()
+        clearDetails()
+        scheduleDetail()
+    }
+
+    // ------------------------------------------------------------ detalle de alta resolución (teselas)
+    private fun clearDetails() {
+        for (i in 0 until b.pages.childCount) (b.pages.getChildAt(i) as? PdfPageView)?.detail = null
+    }
+
+    private fun visibleRect(v: PdfPageView): RectF? {
+        val vw = v.width.toFloat()
+        val vh = v.height.toFloat()
+        if (vw <= 0f || vh <= 0f) return null
+        val top = max(0f, -v.top.toFloat())
+        val bottom = min(vh, b.pages.height - v.top.toFloat())
+        val left = b.pdfScroll.scrollX.toFloat()
+        val right = min(vw, left + b.pdfScroll.width)
+        if (bottom <= top || right <= left) return null
+        val mx = (right - left) * 0.35f
+        val my = (bottom - top) * 0.35f
+        return RectF(max(0f, left - mx), max(0f, top - my), min(vw, right + mx), min(vh, bottom + my))
+    }
+
+    private fun scheduleDetail() {
+        detailJob?.cancel()
+        detailJob = scope.launch {
+            delay(110)
+            if (zoom < 1.15f) { clearDetails(); return@launch }
+            val views = (0 until b.pages.childCount).mapNotNull { b.pages.getChildAt(it) as? PdfPageView }
+            for (v in views) {
+                val rect = visibleRect(v) ?: continue
+                if (v.detail != null && v.detailZoom == zoom && v.detailRect.contains(rect)) continue
+                val page = v.pageIndex
+                val bmp = renderDetail(page, v.width.toFloat(), rect) ?: continue
+                if (v.pageIndex != page || !v.isAttachedToWindow) continue
+                v.detail = bmp
+                v.detailRect.set(rect)
+                v.detailZoom = zoom
+                v.invalidate()
+            }
+        }
+    }
+
+    private suspend fun renderDetail(i: Int, viewW: Float, rect: RectF): Bitmap? = renderMutex.withLock {
+        withContext(Dispatchers.IO) {
+            try {
+                val r = renderer ?: return@withContext null
+                r.openPage(i).use { pg ->
+                    val sc = viewW / pg.width
+                    val w = rect.width()
+                    val h = rect.height()
+                    val k = if (w * h > 4_500_000f) kotlin.math.sqrt(4_500_000f / (w * h)) else 1f
+                    val bmp = Bitmap.createBitmap(max(1, (w * k).toInt()), max(1, (h * k).toInt()), Bitmap.Config.ARGB_8888)
+                    bmp.eraseColor(Color.WHITE)
+                    val m = Matrix()
+                    m.setScale(sc * k, sc * k)
+                    m.postTranslate(-rect.left * k, -rect.top * k)
+                    pg.render(bmp, null, m, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    bmp
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
 
     // ------------------------------------------------------------ dibujo de la capa superior
@@ -729,7 +814,7 @@ class PdfEditorController(
     private suspend fun afterFileChange() {
         val keep = currentPage()
         clearSelection()
-        wordCache.clear(); loading.clear(); hits.clear(); cache.evictAll()
+        wordCache.clear(); loading.clear(); hits.clear(); cache.evictAll(); clearDetails()
         val old = extractor
         extractor = PdfTextExtractor(session.work)
         closeLater(old)
@@ -1077,6 +1162,7 @@ class PdfEditorController(
     }
 
     fun close() {
+        detailJob?.cancel()
         closeRenderer()
         closeLater(extractor)
         b.pages.adapter = null
